@@ -1,0 +1,173 @@
+import tkinter as tk
+from tkinter import messagebox
+
+class HeartCalculator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Heart Calculator ❤️")
+        self.root.geometry("400x600")
+        self.root.resizable(False, False)
+        self.root.configure(bg="#ffebf2")  # Нежно‑розовый фон — как атмосфера любви
+
+        # Переменная для отображения в поле ввода
+        self.current_input = tk.StringVar()
+        self.current_input.set("")
+
+        self.setup_display()
+        self.setup_heart_buttons()
+        self.bind_keyboard()
+
+    def setup_display(self):
+        """Создаёт поле отображения в стиле сердечек"""
+        display_frame = tk.Frame(self.root, bg="#ffebf2", bd=3, relief="ridge")
+        display_frame.pack(pady=25)
+
+        self.display = tk.Entry(
+            display_frame,
+            textvariable=self.current_input,
+            font=("Arial", 20, "bold"),
+            bg="#ffd6e7",  # Цвет розового сердца
+            fg="#8b0000",  # Тёмно‑красный текст
+            justify="right",
+            bd=0,
+            relief="flat",
+            insertbackground="#8b0000"
+        )
+        self.display.pack(padx=15, pady=15, fill="x")
+        self.display.bind("<Key>", lambda e: "break")  # Блокируем прямой ввод с клавиатуры
+
+    def setup_heart_buttons(self):
+        """Создаёт сетку кнопок в форме сердечек"""
+        buttons_frame = tk.Frame(self.root, bg="#ffebf2")
+        buttons_frame.pack(expand=True, fill="both", padx=20, pady=10)
+
+        # Конфигурация кнопок: текст, цвет фона, строка, столбец, colspan
+        buttons = [
+            ('C', '#ff6b8b', 0, 0, 1),   # Ярко‑розовый
+            ('←', '#ff6b8b', 0, 1, 1),  # Ярко‑розовый
+            ('**', '#ff99cc', 0, 2, 1), # Светло‑розовый для функций
+            ('/', '#ff80ab', 0, 3, 1),  # Розовый для операций
+
+            ('7', '#ffc2d1', 1, 0, 1),
+            ('8', '#ffc2d1', 1, 1, 1),
+            ('9', '#ffc2d1', 1, 2, 1),
+            ('*', '#ff80ab', 1, 3, 1),
+
+            ('4', '#ffc2d1', 2, 0, 1),
+            ('5', '#ffc2d1', 2, 1, 1),
+            ('6', '#ffc2d1', 2, 2, 1),
+            ('-', '#ff80ab', 2, 3, 1),
+
+            ('1', '#ffc2d1', 3, 0, 1),
+            ('2', '#ffc2d1', 3, 1, 1),
+            ('3', '#ffc2d1', 3, 2, 1),
+            ('+', '#ff80ab', 3, 3, 1),
+
+            ('0', '#ffc2d1', 4, 0, 2),
+            ('.', '#ffc2d1', 4, 2, 1),
+            ('%', '#ff80ab', 4, 3, 1),
+
+            ('=', '#e91e63', 5, 0, 4),  # Насыщенный розовый для равно
+        ]
+
+        for (text, color, row, col, colspan) in buttons:
+            btn = tk.Button(
+                buttons_frame,
+                text=text,
+                font=("Arial Rounded MT Bold", 16),  # Закруглённые шрифты для мягкости
+                bg=color,
+                fg="white",  # Белый текст для контраста
+                bd=3,  # Чёткая граница для формы сердечка
+                relief="raised",  # Объёмный эффект
+                padx=5,
+                pady=15,
+                width=4 if colspan == 1 else 10,
+                highlightthickness=0,  # Убираем подсветку фокуса
+                cursor="heart",  # Курсор в форме сердечка
+                command=lambda t=text: self.button_click(t)
+            )
+            # Эффект нажатия: немного затемняем при клике
+            btn.bind("<ButtonPress-1>", lambda e, b=btn, c=color: b.config(bg=self.darken_color(c)))
+            btn.bind("<ButtonRelease-1>", lambda e, b=btn, c=color: b.after(100, lambda: b.config(bg=c)))
+
+            btn.grid(row=row, column=col, columnspan=colspan, padx=8, pady=8, sticky="nsew")
+
+
+            buttons_frame.grid_rowconfigure(row, weight=1)
+            buttons_frame.grid_columnconfigure(col, weight=1)
+
+    def darken_color(self, color):
+        """Затемняет цвет для эффекта нажатия"""
+        r = int(color[1:3], 16)
+        g = int(color[3:5], 16)
+        b = int(color[5:7], 16)
+
+        # Затемняем, вычитая 30 из каждого канала (но не меньше 0)
+        r = max(r - 30, 0)
+        g = max(g - 30, 0)
+        b = max(b - 30, 0)
+
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def bind_keyboard(self):
+        """Привязывает клавиши клавиатуры"""
+        self.root.bind('<Key>', self.key_press)
+        self.root.focus_set()
+
+    def key_press(self, event):
+        """Обрабатывает нажатия клавиш клавиатуры"""
+        key = event.char
+        if key in '0123456789.':
+            self.button_click(key)
+        elif key in '+-*/%':
+            self.button_click(key)
+        elif key == '\r':  # Enter
+            self.calculate()
+        elif key == '\x08':  # Backspace
+            self.backspace()
+        elif key == '\x1b':  # Escape
+            self.clear_display()
+
+    def button_click(self, value):
+        """Обрабатывает нажатие кнопки"""
+        if value == '=':
+            self.calculate()
+        elif value == 'C':
+            self.clear_display()
+        elif value == '←':
+            self.backspace()
+        else:
+            current = self.current_input.get()
+            self.current_input.set(current + value)
+
+    def calculate(self):
+        """Вычисляет выражение"""
+        try:
+            expression = self.current_input.get()
+            if not expression:
+                return
+            result = eval(expression)
+            # Форматируем результат: убираем .0 для целых чисел
+            if isinstance(result, float) and result.is_integer():
+                result = int(result)
+            self.current_input.set(str(result))
+        except ZeroDivisionError:
+            messagebox.showerror("Error", "Division by zero")
+            self.clear_display()
+        except Exception:
+            messagebox.showerror("Error", "Invalid expression")
+            self.clear_display()
+
+    def clear_display(self):
+        """Очищает поле ввода"""
+        self.current_input.set("")
+
+    def backspace(self):
+        """Удаляет последний символ"""
+        current = self.current_input.get()
+        self.current_input.set(current[:-1])
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = HeartCalculator(root)
+    root.mainloop()
